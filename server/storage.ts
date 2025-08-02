@@ -22,8 +22,8 @@ export class MemStorage implements IStorage {
       userId: insertChapter.userId || null,
       imageUrl: insertChapter.imageUrl,
       narrative: insertChapter.narrative,
-      connections: insertChapter.connections || [],
-      tags: insertChapter.tags || [],
+      connections: (insertChapter.connections as string[]) || [],
+      tags: (insertChapter.tags as string[]) || [],
       chapterNumber: insertChapter.chapterNumber,
       createdAt: new Date()
     };

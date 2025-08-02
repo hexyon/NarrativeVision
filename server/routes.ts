@@ -3,7 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertStoryChapterSchema } from "@shared/schema";
-import { analyzeImageWithContext } from "./openai";
+import { analyzeImageWithContext as analyzeWithOpenAI } from "./openai";
+import { analyzeImageWithContext as analyzeWithAnthropic } from "./anthropic";
+import { analyzeImageWithContext as analyzeWithGemini } from "./gemini";
 import { ObjectStorageService } from "./objectStorage";
 import multer from "multer";
 
@@ -22,6 +24,47 @@ const upload = multer({
     }
   },
 });
+
+// Multi-provider AI analysis with automatic fallback
+async function analyzeImageWithMultipleProviders(
+  base64Image: string,
+  previousChapters: Array<{ narrative: string; tags: string[]; chapterNumber: number }> = []
+) {
+  const providers = [
+    { name: 'OpenAI', analyze: analyzeWithOpenAI, requiresKey: 'OPENAI_API_KEY' },
+    { name: 'Anthropic', analyze: analyzeWithAnthropic, requiresKey: 'ANTHROPIC_API_KEY' },
+    { name: 'Gemini', analyze: analyzeWithGemini, requiresKey: 'GEMINI_API_KEY' }
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const provider of providers) {
+    // Check if API key is available
+    if (!process.env[provider.requiresKey]) {
+      console.log(`Skipping ${provider.name}: No API key found`);
+      continue;
+    }
+
+    try {
+      console.log(`Attempting image analysis with ${provider.name}...`);
+      const result = await provider.analyze(base64Image, previousChapters);
+      console.log(`Successfully analyzed image with ${provider.name}`);
+      return result;
+    } catch (error) {
+      console.error(`${provider.name} analysis failed:`, error);
+      lastError = error instanceof Error ? error : new Error(`${provider.name} failed`);
+      
+      // Continue to next provider
+      continue;
+    }
+  }
+
+  // If all providers failed
+  throw new Error(
+    `All AI providers failed. Last error: ${lastError?.message || 'Unknown error'}. ` +
+    `Please check your API keys for OpenAI, Anthropic, or Gemini.`
+  );
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all story chapters for the current session (simplified without auth)
@@ -71,8 +114,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chapterNumber: chapter.chapterNumber
       }));
 
-      // Analyze image with AI
-      const analysis = await analyzeImageWithContext(base64Image, contextChapters);
+      // Analyze image with AI (with automatic fallback between providers)
+      const analysis = await analyzeImageWithMultipleProviders(base64Image, contextChapters);
 
       // For now, we'll use a data URL for the image since we're doing direct upload
       // In a real implementation, you'd upload to object storage first
@@ -130,8 +173,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chapterNumber: chapter.chapterNumber
       }));
 
-      // Analyze image with AI
-      const analysis = await analyzeImageWithContext(base64Image, contextChapters);
+      // Analyze image with AI (with automatic fallback between providers)
+      const analysis = await analyzeImageWithMultipleProviders(base64Image, contextChapters);
 
       // Create new chapter
       const newChapter = await storage.createChapter({
