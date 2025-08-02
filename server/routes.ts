@@ -67,6 +67,23 @@ async function analyzeImageWithMultipleProviders(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for Render.com
+  app.get("/", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      message: "VisionThread API is running",
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.get("/health", (req, res) => {
+    res.json({ 
+      status: "healthy", 
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Get all story chapters for the current session (simplified without auth)
   app.get("/api/chapters", async (req, res) => {
     try {
