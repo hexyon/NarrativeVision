@@ -184,9 +184,9 @@ export default function Home() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-                <img src="/favicon.ico" alt="NarrativeVision" className="w-8 h-8 rounded-lg" />
+                <img src="/favicon.ico" alt="Narrative Vision" className="w-8 h-8 rounded-lg" />
               </div>
-              <h1 className="text-xl font-bold text-slate-900">NarrativeVision</h1>
+              <h1 className="text-xl font-bold text-slate-900">Narrative Vision</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-slate-600">
