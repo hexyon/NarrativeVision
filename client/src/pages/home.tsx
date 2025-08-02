@@ -322,7 +322,7 @@ export default function Home() {
                   
                   <CardContent className="p-8">
                     <div className={`grid md:grid-cols-2 gap-8 ${index % 2 === 0 ? '' : 'md:grid-flow-col-dense'}`}>
-                      <div className={`space-y-4 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
+                      <div className={`space-y-4 min-w-0 ${index % 2 === 0 ? 'md:order-1' : 'md:order-2'}`}>
                         <div className="flex items-center space-x-2 text-sm text-slate-500">
                           <Clock className="w-4 h-4" />
                           <span>{formatTimeAgo(chapter.createdAt!)}</span>
@@ -346,13 +346,15 @@ export default function Home() {
                         
                         {/* Tags */}
                         {chapter.tags && Array.isArray(chapter.tags) && chapter.tags.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100">
-                            {chapter.tags.map((tag, tagIndex) => (
-                              <Badge key={tagIndex} variant="secondary" className="text-xs flex-shrink-0">
-                                <Tag className="w-3 h-3 mr-1" />
-                                {tag}
-                              </Badge>
-                            ))}
+                          <div className="pt-4 border-t border-slate-100">
+                            <div className="flex flex-wrap items-center gap-2 w-full overflow-visible">
+                              {chapter.tags.map((tag, tagIndex) => (
+                                <Badge key={tagIndex} variant="secondary" className="text-xs flex-shrink-0 whitespace-nowrap">
+                                  <Tag className="w-3 h-3 mr-1" />
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
