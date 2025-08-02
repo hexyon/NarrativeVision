@@ -1,10 +1,31 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure session middleware
+const MemoryStoreSession = MemoryStore(session);
+const sessionSecret = process.env.SESSION_SECRET || 'visionthread-secret-key-change-in-production';
+
+app.use(session({
+  secret: sessionSecret,
+  store: new MemoryStoreSession({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  }),
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production' && process.env.FORCE_HTTPS === 'true',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  },
+  name: 'visionthread-session'
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();

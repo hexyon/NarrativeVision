@@ -183,8 +183,8 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Eye className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+                <img src="/favicon.ico" alt="NarrativeVision" className="w-8 h-8 rounded-lg" />
               </div>
               <h1 className="text-xl font-bold text-slate-900">NarrativeVision</h1>
             </div>

@@ -2,20 +2,39 @@ import { type StoryChapter, type InsertStoryChapter } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
-  createChapter(chapter: InsertStoryChapter): Promise<StoryChapter>;
-  getAllChapters(): Promise<StoryChapter[]>;
-  getChapterById(id: string): Promise<StoryChapter | undefined>;
-  deleteAllChapters(): Promise<void>;
+  createChapter(chapter: InsertStoryChapter, sessionId: string): Promise<StoryChapter>;
+  getAllChapters(sessionId: string): Promise<StoryChapter[]>;
+  getChapterById(id: string, sessionId: string): Promise<StoryChapter | undefined>;
+  deleteAllChapters(sessionId: string): Promise<void>;
+  cleanupExpiredSessions?: () => void;
 }
 
-export class MemStorage implements IStorage {
-  private chapters: Map<string, StoryChapter>;
+export class SessionStorage implements IStorage {
+  private sessions: Map<string, Map<string, StoryChapter>>;
+  private sessionTimestamps: Map<string, number>;
+  private readonly SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {
-    this.chapters = new Map();
+    this.sessions = new Map();
+    this.sessionTimestamps = new Map();
+    
+    // Clean up expired sessions every hour
+    setInterval(() => {
+      this.cleanupExpiredSessions();
+    }, 60 * 60 * 1000);
   }
 
-  async createChapter(insertChapter: InsertStoryChapter): Promise<StoryChapter> {
+  private getOrCreateSession(sessionId: string): Map<string, StoryChapter> {
+    if (!this.sessions.has(sessionId)) {
+      this.sessions.set(sessionId, new Map());
+    }
+    // Update session timestamp
+    this.sessionTimestamps.set(sessionId, Date.now());
+    return this.sessions.get(sessionId)!;
+  }
+
+  async createChapter(insertChapter: InsertStoryChapter, sessionId: string): Promise<StoryChapter> {
+    const sessionChapters = this.getOrCreateSession(sessionId);
     const id = randomUUID();
     const chapter: StoryChapter = {
       id,
@@ -27,21 +46,45 @@ export class MemStorage implements IStorage {
       chapterNumber: insertChapter.chapterNumber,
       createdAt: new Date()
     };
-    this.chapters.set(id, chapter);
+    sessionChapters.set(id, chapter);
     return chapter;
   }
 
-  async getAllChapters(): Promise<StoryChapter[]> {
-    return Array.from(this.chapters.values()).sort((a, b) => a.chapterNumber - b.chapterNumber);
+  async getAllChapters(sessionId: string): Promise<StoryChapter[]> {
+    const sessionChapters = this.getOrCreateSession(sessionId);
+    return Array.from(sessionChapters.values()).sort((a, b) => a.chapterNumber - b.chapterNumber);
   }
 
-  async getChapterById(id: string): Promise<StoryChapter | undefined> {
-    return this.chapters.get(id);
+  async getChapterById(id: string, sessionId: string): Promise<StoryChapter | undefined> {
+    const sessionChapters = this.getOrCreateSession(sessionId);
+    return sessionChapters.get(id);
   }
 
-  async deleteAllChapters(): Promise<void> {
-    this.chapters.clear();
+  async deleteAllChapters(sessionId: string): Promise<void> {
+    const sessionChapters = this.getOrCreateSession(sessionId);
+    sessionChapters.clear();
+  }
+
+  cleanupExpiredSessions(): void {
+    const now = Date.now();
+    const expiredSessions: string[] = [];
+
+    for (const [sessionId, timestamp] of this.sessionTimestamps.entries()) {
+      if (now - timestamp > this.SESSION_TIMEOUT) {
+        expiredSessions.push(sessionId);
+      }
+    }
+
+    for (const sessionId of expiredSessions) {
+      this.sessions.delete(sessionId);
+      this.sessionTimestamps.delete(sessionId);
+      console.log(`Cleaned up expired session: ${sessionId}`);
+    }
+
+    if (expiredSessions.length > 0) {
+      console.log(`Cleaned up ${expiredSessions.length} expired sessions`);
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new SessionStorage();

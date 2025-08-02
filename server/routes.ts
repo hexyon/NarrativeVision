@@ -85,10 +85,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Get all story chapters for the current session (simplified without auth)
+  // Get all story chapters for the current session
   app.get("/api/chapters", async (req, res) => {
     try {
-      const chapters = await storage.getAllChapters();
+      const sessionId = req.sessionID;
+      console.log(`Fetching chapters for session: ${sessionId}`);
+      const chapters = await storage.getAllChapters(sessionId);
+      console.log(`Found ${chapters.length} chapters for session: ${sessionId}`);
       res.json(chapters);
     } catch (error) {
       console.error("Error fetching chapters:", error);
@@ -121,11 +124,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file provided" });
       }
 
+      const sessionId = req.sessionID;
       const imageBuffer = req.file.buffer;
       const base64Image = imageBuffer.toString('base64');
 
-      // Get previous chapters for context
-      const previousChapters = await storage.getAllChapters();
+      // Get previous chapters for context (session-specific)
+      const previousChapters = await storage.getAllChapters(sessionId);
       const contextChapters = previousChapters.map(chapter => ({
         narrative: chapter.narrative,
         tags: chapter.tags as string[],
@@ -139,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a real implementation, you'd upload to object storage first
       const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
 
-      // Create new chapter
+      // Create new chapter (session-specific)
       const newChapter = await storage.createChapter({
         userId: null, // No auth for now
         imageUrl,
@@ -147,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         connections: analysis.connections,
         tags: analysis.tags,
         chapterNumber: previousChapters.length + 1
-      });
+      }, sessionId);
 
       res.json(newChapter);
     } catch (error) {
@@ -167,6 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         base64Image: z.string().optional()
       }).parse(req.body);
 
+      const sessionId = req.sessionID;
       let base64Image = body.base64Image;
       
       // If no base64 provided, fetch the image
@@ -183,8 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Unable to process image" });
       }
 
-      // Get previous chapters for context
-      const previousChapters = await storage.getAllChapters();
+      // Get previous chapters for context (session-specific)
+      const previousChapters = await storage.getAllChapters(sessionId);
       const contextChapters = previousChapters.map(chapter => ({
         narrative: chapter.narrative,
         tags: chapter.tags as string[],
@@ -194,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Analyze image with AI (with automatic fallback between providers)
       const analysis = await analyzeImageWithMultipleProviders(base64Image, contextChapters);
 
-      // Create new chapter
+      // Create new chapter (session-specific)
       const newChapter = await storage.createChapter({
         userId: null, // No auth for now
         imageUrl: body.imageUrl,
@@ -202,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         connections: analysis.connections,
         tags: analysis.tags,
         chapterNumber: previousChapters.length + 1
-      });
+      }, sessionId);
 
       res.json(newChapter);
     } catch (error) {
@@ -223,7 +228,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete all chapters (reset story)
   app.delete("/api/chapters", async (req, res) => {
     try {
-      await storage.deleteAllChapters();
+      const sessionId = req.sessionID;
+      await storage.deleteAllChapters(sessionId);
       res.json({ message: "All chapters deleted successfully" });
     } catch (error) {
       console.error("Error deleting chapters:", error);
@@ -237,7 +243,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export story as JSON
   app.get("/api/export", async (req, res) => {
     try {
-      const chapters = await storage.getAllChapters();
+      const sessionId = req.sessionID;
+      const chapters = await storage.getAllChapters(sessionId);
       const storyData = {
         title: `Visual Story - ${chapters.length} Chapters`,
         createdAt: new Date().toISOString(),
