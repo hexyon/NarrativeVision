@@ -67,12 +67,13 @@ async function analyzeImageWithMultipleProviders(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint for Render.com
-  app.get("/", (req, res) => {
+  // Health check endpoints for Render.com
+  app.get("/api/health", (req, res) => {
     res.json({ 
-      status: "ok", 
-      message: "VisionThread API is running",
-      timestamp: new Date().toISOString()
+      status: "healthy", 
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      message: "VisionThread API is running"
     });
   });
 
