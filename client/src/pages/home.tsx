@@ -236,16 +236,28 @@ export default function Home() {
           >
             <CardContent className="p-8">
               <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
-                  <CloudUpload className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-2">Upload Your Next Image</h3>
-                <p className="text-slate-600 mb-6">Drag and drop an image here, or click to browse</p>
-                <Button className="bg-primary hover:bg-blue-700 text-white shadow-md hover:shadow-lg">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Choose Image
-                </Button>
-                <p className="text-sm text-slate-500 mt-4">Supports JPG, PNG, WebP up to 10MB</p>
+                {isUploading ? (
+                  <div className="animate-pulse">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                      <Brain className="w-8 h-8 text-white animate-pulse" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">AI is Analyzing Your Image</h3>
+                    <p className="text-slate-600 mb-6">Analyzing visual elements and crafting your narrative...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+                      <CloudUpload className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-2">Upload Your Next Image</h3>
+                    <p className="text-slate-600 mb-6">Drag and drop an image here, or click to browse</p>
+                    <Button className="bg-primary hover:bg-blue-700 text-white shadow-md hover:shadow-lg">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Choose Image
+                    </Button>
+                    <p className="text-sm text-slate-500 mt-4">Supports JPG, PNG, WebP up to 10MB</p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
